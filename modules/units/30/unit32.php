@@ -87,8 +87,7 @@ class unit32 extends unit
             $unit->move("force",NULL, $token_zoneid);
         }
         else{
-            $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-            $this->player->discard($card_id);
+            mythicbattlesragnarok::$instance->addPending($this->player->getOtherPlayer()->id,0, "DiscardAOW");     
         }
     }
 
@@ -169,10 +168,9 @@ class unit32 extends unit
     {
         //Opponent action
         $player = $this->player;
-        $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$player->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-        $player->discard($card_id);
-        $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$player->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-        $player->discard($card_id);
+        mythicbattlesragnarok::$instance->addPending($player->player_id,0, "DiscardAOW"); 
+        mythicbattlesragnarok::$instance->addPending($player->player_id,0, "DiscardAOW"); 
+
         $token_id = self::getUniqueValueFromDB( "SELECT id from token where type='Hrolf'");
         mythicbattlesragnarok::$instance->notifyAllPlayers( "fadeOutAndDestroy", '', array(
             'id' => 'token'.$token_id

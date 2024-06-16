@@ -44,7 +44,7 @@ class unit48 extends unit
         }   
         if($time == FASTFLIGHT && $attack == $this && $this->canUse($this->powers[2]) && !in_array("power2", $this->status))
         {
-            mythicbattlesragnarok::$instance->addPending($this->player_id,$this->id, "Freezing"); 
+            mythicbattlesragnarok::$instance->addPending($this->player_id,$this->id, "Freezing", $this->zone->id); 
         } 
     } 
 
@@ -149,7 +149,8 @@ class unit48 extends unit
     
     function Freezing($parg1 = NULL, $parg2 = NULL, $varg1 = NULL, $varg2 = NULL)
     {     
-        foreach($this->zone->units as $unit)
+
+        foreach(mythicbattlesragnarok::$instance->zones[$parg1]->units as $unit)
         {
             if($unit != $this)
             {

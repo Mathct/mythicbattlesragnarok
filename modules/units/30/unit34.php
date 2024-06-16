@@ -61,12 +61,12 @@ class unit34 extends unit
     public function onTiming($time, $attack)
     {
         parent::onTiming($time, $attack);
-        if($time == BEFOREDIE &&  $attack->to == $this && $attack->from != null && $attack->from->player_id != $attack->to->player_id && $attack->range <= 1)
+        if($time == BEFOREDIE &&  $attack->to == $this && $attack->from != null && $attack->from->player_id != $attack->to->player_id && $attack->from->zone->getDistanceWith($attack->to->zone)<2)
         {
             $nattack = new attack();
             $nattack->from = $this;
             $nattack->to = $attack->from;
-            $nattack->range = 0;
+            $nattack->range = $attack->from->zone->getDistanceWith($attack->to->zone);
             $nattack->type = RETALIATE;
             mythicbattlesragnarok::$instance->addPending($this->player_id,$this->id, "A2A_ValueCalculation", $nattack->toJSON(),6);
         }

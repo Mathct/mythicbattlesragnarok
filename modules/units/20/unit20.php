@@ -22,8 +22,8 @@ class unit20 extends unit
     public function __construct()
     {
         $this->name = clienttranslate("Loki");
-         $this->powers[0] = new power(0,PERMANENT, BLACK, clienttranslate("Malice"), clienttranslate('When Loki is the target of a range 0 attack, he can redirect the attack towards another unit in Loki\'s area, other than the attacking unit.'));
-         $this->powers[1] = new power(1,PASSIVE, WHITE, clienttranslate("Metamorphosis"), clienttranslate('One use per game. When recruited, take Loki\'s token and place it on his base. When Loki is the target of an attack, you can discard the token to exchange Loki\'s place with another allied unit in his surroundings. The attack continues on the unit replacing him.'),0,1);
+         $this->powers[0] = new power(0,PASSIVE, BLACK, clienttranslate("Malice"), clienttranslate('When Loki is the target of a range 0 attack, he can redirect the attack towards another unit in Loki\'s area, other than the attacking unit.'));
+         $this->powers[1] = new power(1,PERMANENT, WHITE, clienttranslate("Metamorphosis"), clienttranslate('One use per game. When recruited, take Loki\'s token and place it on his base. When Loki is the target of an attack, you can discard the token to exchange Loki\'s place with another allied unit in his surroundings. The attack continues on the unit replacing him.'),0,1);
     }
 
     public function onTiming($time, $attack = NULL)
@@ -36,7 +36,7 @@ class unit20 extends unit
                 "token" => self::getObjectFromDB( "SELECT* FROM token order by id desc limit 1") 
             ) );
         }
-        if($time == AFTERSELECTINGTARGET && $this->canUse($this->powers[1]) && $attack->to == $this && $attack->range == 0 && self::getUniqueValueFromDB( "SELECT count(*) from token where type='Loki' and location = 'unit".$this->id."'")>0 )
+        if($time == AFTERSELECTINGTARGET && $this->canUse($this->powers[1]) && $attack->to == $this && $attack->range == 0 && self::getUniqueValueFromDB( "SELECT count(*) from token where type='Loki' and location = 'dashboard".$this->id."'")>0 )
         {
             mythicbattlesragnarok::$instance->addPending($this->player_id,$this->id, "Metamorphosis", $attack->toJSON());           
         } 
@@ -77,7 +77,7 @@ class unit20 extends unit
             $attack = attack::fromJSON($parg1);
             $attack->to = $unit;
             $json = $attack->toJSON();
-            $sql = "update pending set arg = '".$json."' where arg='".$parg1."'";
+            $sql = "update pending set player_id = '".$unit->player->getOtherPlayer()->player_id."', arg = '".$json."' where arg='".$parg1."' and function <> 'Metamorphosis'";
             mythicbattlesragnarok::DbQuery( $sql);
 
             mythicbattlesragnarok::$instance->notifyAllPlayers( "simpleText", clienttranslate('${unitid_display} redirects attack on ${unitid_display2}'), array(

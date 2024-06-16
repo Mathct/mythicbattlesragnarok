@@ -774,7 +774,7 @@ function (dojo, declare) {
                             args['unitid_display2'] = '<span style="color:#'+this.players[unit.player_id].player_color+'">'+_(unit.name)+'</span>';
                         }
                     }
-                    const stats = ['offense', 'defense','movement','vitality'];
+                    const stats = ['offense', 'defense','movement','vitality', 'range'];
                     stats.forEach(stat =>
                     {
                         if(args[stat] != null)

@@ -34,6 +34,8 @@ class talentBerserk extends talent
             ) );
 
         mythicbattlesragnarok::DbQuery( "delete from pending where function = 'T2C_PickActionSimple' and unit_id=".$this->unit->id." and player_id=".$this->unit->player_id);
+        
+        mythicbattlesragnarok::$instance->addPending($this->unit->player_id,$this->unit->id, "pendWound",1,"Berserk");
         mythicbattlesragnarok::$instance->addPending($this->unit->player_id,$this->unit->id, "A1A_targetChoice"); 
         mythicbattlesragnarok::$instance->addPending($this->unit->player_id,$this->unit->id, "A1A_targetChoice"); 
     }

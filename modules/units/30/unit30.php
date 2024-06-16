@@ -196,8 +196,7 @@ class unit30 extends unit
                 'talent' => "Discord"
                 ) );
 
-            $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-            $this->player->discard($card_id);     
+            mythicbattlesragnarok::$instance->addPending($this->player_id,0, "DiscardAOW");         
             $this->status[] = 'power1';
             mythicbattlesragnarok::DbQuery("update unit set statusGame = concat(statusGame, ' power1' ) where id = ".$this->id);
             mythicbattlesragnarok::DbQuery("update player set endofturnstatus = concat(endofturnstatus, ' nomaneuver norecall' ) where player_id = ".$this->player->getOtherPlayer()->id);

@@ -10,7 +10,7 @@ class talentTorment extends talent
 
     public function getStatBonus($stat, $to, $attack)
     {
-        if($stat == DEFENSE && $attack->from == $this->unit && $attack->range == 0 && $attack->type == ATNORMAL)
+        if($stat == DEFENSE && $attack->from == $this->unit && $attack->range == 0 && ($attack->type == ATNORMAL || $attack->type == RETALIATE))
         {
             return -1;
         }

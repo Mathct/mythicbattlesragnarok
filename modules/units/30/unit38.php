@@ -61,9 +61,8 @@ class unit38 extends unit
     
     function Death($parg1, $parg2, $varg1, $varg2) { 
         if($varg1 != "butskip")
-        {
-            $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-            $this->player->discard($card_id); 
+        {            
+            mythicbattlesragnarok::$instance->addPending($this->player_id,0, "DiscardAOW");     
             $unit_id = $parg1;
             $unit = mythicbattlesragnarok::$instance->units[$unit_id];
             $unit->deploy(NULL, NULL, $varg1, $varg2);                         
@@ -76,7 +75,7 @@ class unit38 extends unit
         $ret = parent::getAnyTimeActions($player_id);
         if($this->canUse($this->powers[1]) && $player_id == $this->player_id)
         {        
-            $alreadyUse = mythicbattlesragnarok::getUniqueValueFromDB("select count(*) from unit where statusGame like '%skuld%'");
+            $alreadyUse = mythicbattlesragnarok::getUniqueValueFromDB("select count(*) from unit where statusGame like '%chimeric%'");
             if($alreadyUse == 0)
             {
                 $ret['butAny'.$this->id."Chimeric"] = array("title" => clienttranslate("Chimeric Approach"));
@@ -94,11 +93,8 @@ class unit38 extends unit
                 'talent' => $this->powers[1]->title
                 ) );
 
-            $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-            $this->player->discard($card_id); 
-            
             $this->status[] = "power1";
-            mythicbattlesragnarok::DbQuery("update unit set statusGame = concat(statusGame, ' skuld' ) where id = ".$this->id);
+            mythicbattlesragnarok::DbQuery("update unit set statusGame = concat(statusGame, ' chimeric' ) where id = ".$this->id);
            
             mythicbattlesragnarok::$instance->addPending($this->player->getOtherPlayer()->player_id,0, "draw"); 
             mythicbattlesragnarok::$instance->addPending($this->player_id,0, "draw", "mandatory");
@@ -106,6 +102,7 @@ class unit38 extends unit
             mythicbattlesragnarok::$instance->addPending($this->player_id,0, "draw", "mandatory");
             mythicbattlesragnarok::$instance->addPending($this->player_id,0, "draw", "mandatory");
             mythicbattlesragnarok::$instance->addPending($this->player_id,0, "draw", "mandatory");
+            mythicbattlesragnarok::$instance->addPending($this->player_id,0, "DiscardAOW"); 
 
         }
     }

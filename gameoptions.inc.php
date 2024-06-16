@@ -36,6 +36,14 @@ $game_options = array(
                 ),
                 'default' => 1
             ),
+    101 => array(
+                'name' => totranslate('Draft pool'),    
+                'values' => array(
+                    1 => array( 'name' => totranslate('All units') ),
+                    2 => array( 'name' => totranslate('Limited draft') )
+                ),
+                'default' => 1
+            ),
 
 );
 

@@ -16,7 +16,7 @@ class action extends APP_GameClass
 
     public static function fromPending()
     {        
-        $pending =  mythicbattlesragnarok::getObjectFromDB( "SELECT* FROM pending order by id desc limit 1");
+        $pending =  mythicbattlesragnarok::$instance->getObjectFromDB( "SELECT* FROM pending order by id desc limit 1");
         $action = new action();
         $action->player_id = $pending['player_id'];
         $action->player = mythicbattlesragnarok::$instance->playersMBR[$action->player_id];

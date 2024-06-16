@@ -19,7 +19,7 @@ class talentMightyThrow extends talent
             || ($nbblank >= 2 && ($attack->to->category == MONSTER || $attack->to->category == GOD))
             || ($nbblank >= 1 && ($attack->to->category == TROOP  || $attack->to->category == HERO )))
             {
-                mythicbattlesragnarok::$instance->addPending($this->unit->player_id,$this->unit->id, "talentMightyThrow.mightyThrow", $attack->toJSON());
+                mythicbattlesragnarok::$instance->addPending($attack->to->player->getOtherPlayer()->id,$this->unit->id, "talentMightyThrow.mightyThrow", $attack->toJSON());
             }
         }
     }

@@ -38,6 +38,28 @@ class unit56 extends unit
         }
     }
 
+    function argzoneattack($parg1 = NULL, $parg2 = NULL)
+    {
+        $ret = parent::argzoneattack($parg1, $parg2);
+        $pending =  mythicbattlesragnarok::getObjectFromDB( "SELECT* FROM pending order by id desc limit 1");
+        $zoneid = $pending['arg4'];
+
+        if($zoneid != null)
+        {            
+            unset( $ret['selectable']['zone'.$zoneid] );
+        }
+
+        return $ret;
+    }
+
+    //parg4 : forceoffense onlyennemy
+    function zoneattack($parg1 = NULL, $parg2 = NULL, $varg1 = NULL, $varg2 = NULL)
+    {
+        parent::zoneattack($parg1, $parg2, $varg1, $varg2);   
+        $zoneid = str_replace("zone","", $varg1);     
+        mythicbattlesragnarok::DbQuery( "update pending set arg4 = ".$zoneid." where unit_id=".$this->id." and function ='zoneattack'");
+    }
+
     public function onTiming($time, $attack)
     {
         parent::onTiming($time, $attack);

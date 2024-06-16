@@ -77,6 +77,7 @@ class talentFlying extends talent
     {
         if($varg1 != "butskip")
         {
+            mythicbattlesragnarok::$instance->onTiming(FASTFLIGHT, $this->unit);
             $zoneid = str_replace("zone","", $varg1);            
             mythicbattlesragnarok::DbQuery("update unit set zone_id = ".$zoneid." where id = ".$this->unit->id);
             unset($this->unit->zone->units[$this->unit->id]);  
@@ -88,7 +89,6 @@ class talentFlying extends talent
                 "category" => $this->unit->category
             ) );    
             mythicbattlesragnarok::$instance->onTiming(ENTER, $this->unit);
-            mythicbattlesragnarok::$instance->onTiming(FASTFLIGHT, $this->unit);
         }
         else{
             mythicbattlesragnarok::DbQuery( "delete from pending where function = 'talentFlying.FastFlight' and unit_id=".$this->unit->id." and player_id=".$this->unit->player_id);
@@ -180,7 +180,7 @@ class talentFlying extends talent
                 $card_id2 = str_replace("card","",$varg2);
                 $this->unit->player->discard($card_id2);
             }
-            mythicbattlesragnarok::$instance->addPending($this->unit->player_id,$this->unit->id, "talentFlying.evadetarget", $parg1);
+            mythicbattlesragnarok::$instance->addPending($this->unit->player->getOtherPlayer()->id,$this->unit->id, "talentFlying.evadetarget", $parg1);
             $this->unit->player->status[] = 'noevade';
             mythicbattlesragnarok::DbQuery("update player set endofturnstatus = concat(endofturnstatus, ' noevade' ) where player_id = ".$this->unit->player_id);
         }
@@ -195,13 +195,13 @@ class talentFlying extends talent
         $ret['titleyou'] = clienttranslate('Evade : ${unitid_display} can redirect attack on another unit');  
         $ret['unitid_display'] = $this->unit->id;
         $attack2 = new attack();
-        $attack2->from = $this;
+        $attack2->from = $attack->from;
         $attack2->type = ATNORMAL;
 
         $units = $this->unit->zone->getUnitsWithin(0,$this->unit->getEffectiveStat(RANGE, $attack2)['total'],$this->unit->player_id,true, true);
         foreach($units as $unit)
         {
-            if($this->unit != $unit && $unit != $attack->from && $unit->player_id != $this->unit->player_id)
+            if($this->unit != $unit && $unit != $attack->from && $unit->player_id == $this->unit->player_id)
             {
                 $ret['selectable']['unit'.$unit->id] = array(
                     "confirm" => 'Do you want to redirect the attack on ${unitid_display}?'
@@ -220,6 +220,7 @@ class talentFlying extends talent
             $unit =  mythicbattlesragnarok::$instance->units[$unitid];
             $attack = attack::fromJSON($parg1);
             $attack->to = $unit;
+            $attack->range = $attack->from->zone->getDistanceWith($attack->to->zone);
             $json = $attack->toJSON();
             $sql = "update pending set arg = '".$json."' where arg='".$parg1."'";
             mythicbattlesragnarok::DbQuery( $sql);

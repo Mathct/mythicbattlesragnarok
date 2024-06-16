@@ -23,9 +23,9 @@ class unit54 extends unit
     public function __construct()
     {
         $this->name = clienttranslate("Troll");
-         $this->powers[0] = new power(0,PERMANENT, BLACK, clienttranslate("Earthbound"), clienttranslate('When recruited, take the Troll token. The two sides of the token represent its PEBBLE and MOUNTAIN powers. The Troll chooses which side is active when it is deployed. At the beginning of its activation, it can change which side is active.'),0,1);
-         $this->powers[1] = new power(1,PASSIVE, WHITE, clienttranslate("Pebble"), clienttranslate('The Troll gains +1 movement and the Gem Collector talent. It can cross areas containing enemy units.'),1);
-         $this->powers[2] = new power(2,PASSIVE, BLACK, clienttranslate("Mountain"), clienttranslate('The Troll gains +1 range and the Mighty Throw talent. When it uses Force of Nature, it can choose to not remove the 3D elements.'),1);
+         $this->powers[0] = new power(0,PERMANENT, BLACK, clienttranslate("Earthbound"), clienttranslate('When recruited, take the Troll token. The two sides of the token represent its PEBBLE and MOUNTAIN powers. The Troll chooses which side is active when it is deployed. At the beginning of its activation, it can change which side is active.'),1,1);
+         $this->powers[1] = new power(1,PASSIVE, WHITE, clienttranslate("Pebble"), clienttranslate('The Troll gains +1 movement and the Gem Collector talent. It can cross areas containing enemy units.'));
+         $this->powers[2] = new power(2,PASSIVE, BLACK, clienttranslate("Mountain"), clienttranslate('The Troll gains +1 range and the Mighty Throw talent. When it uses Force of Nature, it can choose to not remove the 3D elements.'));
     }
 
     public function isPebble()
@@ -41,7 +41,7 @@ class unit54 extends unit
             $ret[$this->powers[1]->title] = 1;
             $ret['total'] ++;
         }
-        if($this->canUse($this->powers[2]) && $stat == RANGE && $attack->from == $this)
+        if($this->canUse($this->powers[2]) && $stat == RANGE && $attack->from == $this && !$this->isPebble())
         {
             $ret[$this->powers[2]->title] = 1;
             $ret['total']++;
@@ -64,13 +64,16 @@ class unit54 extends unit
         $ret['selectable'] = array();
         $ret['title'] = clienttranslate('Earthbound : ${actplayer} must choose the side for Troll\'s token');
         $ret['titleyou'] = clienttranslate('Earthbound : ${you} must choose the side for Troll\'s token'); 
-        $ret['selectable']['butpebble'] = array("title" => clienttranslate("Pebble"));
-        $ret['selectable']['butmountain'] = array("title" => clienttranslate("Mountain")); 
         
         $token = mythicbattlesragnarok::getObjectFromDB( "SELECT * from token where type='pebble' or type='mountain'");
-        if($token == null)
+        if($token != null)
         {
             $ret['selectable']['butskip'] = array("title" => clienttranslate("Skip"), "color"=>"gray");
+        }
+        if($token == null || $this->player->getAowInHand()>0)
+        {
+            $ret['selectable']['butpebble'] = array("title" => clienttranslate("Pebble"));
+            $ret['selectable']['butmountain'] = array("title" => clienttranslate("Mountain")); 
         }
         return $ret;
     }
@@ -78,9 +81,8 @@ class unit54 extends unit
     
     function Setup($parg1, $parg2, $varg1, $varg2) { 
         
-        if($varg1 != "butskip")
+        if($varg1 != null && $varg1 != "butskip")
         {
-
             $side = str_replace("but","", $varg1);
 
             $token = mythicbattlesragnarok::getObjectFromDB( "SELECT * from token where type='pebble' or type='mountain'");
@@ -94,8 +96,8 @@ class unit54 extends unit
             }
             else if($token['type'] != $side)
             {            
-                $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-                $this->player->discard($card_id);   
+                
+                mythicbattlesragnarok::$instance->addPending($this->player_id,0, "DiscardAOW");       
 
                 $token['type'] = $side;
                 self::DbQuery( "update token set type = '".$side."' where id = ".$token['id']);

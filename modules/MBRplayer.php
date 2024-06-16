@@ -42,6 +42,11 @@ class MBRplayer extends APP_GameClass
             $forceuse = $matches[1];
         } 
 
+        if($forceuse != null && (mythicbattlesragnarok::getUniqueValueFromDB("SELECT * from deck".$this->player_no." where card_location = 'hand' and card_id=".$forceuse) == 0))
+        {
+            $forceuse = null;
+        }
+
         $sql = "SELECT * from deck".$this->player_no." where card_location = 'hand'";
         $hand = self::getCollectionFromDb( $sql );
         foreach($hand as $card)
@@ -122,7 +127,99 @@ class MBRplayer extends APP_GameClass
 
     function getAowInHand()
     {
-        return mythicbattlesragnarok::getUniqueValueFromDB("select count(*) from deck".$this->player_no." where card_location = 'hand' and card_type <= 0"); 
+        $retaow =  mythicbattlesragnarok::getUniqueValueFromDB("select count(*) from deck".$this->player_no." where card_location = 'hand' and card_type <= 0"); 
+        $ret['selectable'] = array();
+        
+        $sql = "SELECT * from deck".$this->player_no." where card_location = 'hand'";
+        $hand = self::getCollectionFromDb( $sql );
+        foreach($hand as $card)
+        {
+            $unit_id = $card['card_type_arg'];
+            if($unit_id > 0)
+            {
+                $unit = mythicbattlesragnarok::$instance->units[$unit_id];
+                if($unit->isDead() && $unit->category != TROOP)
+                {
+                    $ret['selectable']["card".$card['card_id']] = array('title' => clienttranslate('${you} must select a second activation card'), 'target'=> array());
+
+                    foreach($hand as $card2)
+                    {
+                        if($card2['card_type_arg']>0 && $card['card_id'] != $card2['card_id'])
+                        {
+                            $unit2 = mythicbattlesragnarok::$instance->units[$card2['card_type_arg']];
+                            if($unit2->isDead() && $unit2->category != TROOP)
+                            {
+                                $ret['selectable']["card".$card['card_id']]['target'][] = "card".$card2['card_id'];
+                            }
+                        }
+                    }
+                    if(count($ret['selectable']["card".$card['card_id']]['target']) == 0)
+                    {
+                        unset( $ret['selectable']["card".$card['card_id']]);
+                    }
+                }
+            } 
+        }
+        $retaow += floor(count($ret['selectable'])/2);
+        return $retaow;
+    }
+
+    function argDiscardAOW($parg1 = NULL, $parg2 = NULL)
+    {
+        $ret = array();
+        $ret['selectable'] = array();
+        $ret['buttons'] = array();
+        $ret['title'] = clienttranslate('${actplayer} must discard 1 AOW card, 1 divine stone or 2 activation cards from destroyed unit');
+        $ret['titleyou'] = clienttranslate('${you} must discard 1 AOW card, 1 divine stone or 2 activation cards from destroyed unit'); 
+               
+        $sql = "SELECT * from deck".$this->player_no." where card_location = 'hand'";
+        $hand = self::getCollectionFromDb( $sql );
+        foreach($hand as $card)
+        {
+            $unit_id = $card['card_type_arg'];
+            if($unit_id <= 0)
+            {
+                $ret['selectable']["card".$card['card_id']] = array();
+            }
+            else {
+                $unit = mythicbattlesragnarok::$instance->units[$unit_id];
+                if($unit->isDead() && $unit->category != TROOP)
+                {
+                    $ret['selectable']["card".$card['card_id']] = array('title' => clienttranslate('${you} must select a second activation card'), 'target'=> array());
+
+                    foreach($hand as $card2)
+                    {
+                        if($card2['card_type_arg']>0 && $card['card_id'] != $card2['card_id'])
+                        {
+                            $unit2 = mythicbattlesragnarok::$instance->units[$card2['card_type_arg']];
+                            if($unit2->isDead() && $unit2->category != TROOP)
+                            {
+                                $ret['selectable']["card".$card['card_id']]['target'][] = "card".$card2['card_id'];
+                            }
+                        }
+                    }
+                    if(count($ret['selectable']["card".$card['card_id']]['target']) == 0)
+                    {
+                        unset( $ret['selectable']["card".$card['card_id']]);
+                    }
+                }
+            }            
+        }
+        return $ret;
+    }
+
+    function DiscardAOW($parg1 = NULL, $parg2 = NULL, $varg1 = NULL, $varg2 = NULL)
+    {
+        if($varg1 != null)
+        {
+            $card_id = str_replace("card","",$varg1);
+            $this->discard($card_id);
+            if($varg2 != null)
+            {
+                $card_id2 = str_replace("card","",$varg2);
+                $this->discard($card_id2);
+            }
+        }
     }
 
     function argT3A_NextActivate($parg1, $parg2)
@@ -138,20 +235,8 @@ class MBRplayer extends APP_GameClass
         
         if($alreadyActivated < 2 && $aow>0)
         {
-            $sql = "SELECT * from deck".$this->player_no." where card_location = 'hand' and card_type <= 0";
-            $hand = self::getCollectionFromDb( $sql );
-            foreach($hand as $card)
-            {            
-                $ret['selectable']['card'.$card['card_id']] = array();
-                $ret['selectable']['butActivate'] = array("title" => clienttranslate("Activate"));            
-            }
+            $ret['selectable']['butActivate'] = array("title" => clienttranslate("Activate")); 
         }
-
-        if(count($ret['selectable']) == 0)
-        {
-            $ret['titleyou'] = clienttranslate('${you} cannot activate another unit'); 
-        }
-
         $ret['selectable']['fake']  = array();
         $ret['selectable']['butskip'] = array("title" => clienttranslate("Skip"), "color"=>"gray"); 
 
@@ -162,16 +247,9 @@ class MBRplayer extends APP_GameClass
     {
         if($varg1 != "butskip")
         {          
-            if (str_starts_with($varg1, "but"))
-            {
-                $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-            }
-            else
-            {
-                $card_id = str_replace("card","", $varg1);
-            }
-            $this->discard($card_id);
+            
             mythicbattlesragnarok::$instance->addPending($this->player_id,0, "T2A1_Activate");  
+            mythicbattlesragnarok::$instance->addPending($this->player_id,0, "DiscardAOW");  
         }
     }
 
@@ -219,8 +297,7 @@ class MBRplayer extends APP_GameClass
             {
                 for($i=0;$i<$this->units[$unit_id]->getRecallCost();$i++)
                 {
-                    $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-                    $this->discard($card_id);
+                    mythicbattlesragnarok::$instance->addPending($this->player_id,0, "DiscardAOW");                     
                 }
             }
             $this->units[$unit_id]->recall();
@@ -415,15 +492,14 @@ class MBRplayer extends APP_GameClass
         $action = action::fromJSON($parg1);
         if($varg1 == "butdiscard")
         {
-            $aow = mythicbattlesragnarok::$instance->requiresAdditionalAOW($action);
-            for($i=0;$i<$aow;$i++)
-            {
-                $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-                $this->discard($card_id);
-            }
             $pending = $action->toPending();
             $pending['arg4'] = "noadditionalaow";
             mythicbattlesragnarok::$instance->callPending($pending, true, $action->varg1, $action->varg2);
+            $aow = mythicbattlesragnarok::$instance->requiresAdditionalAOW($action);
+            for($i=0;$i<$aow;$i++)
+            {
+                mythicbattlesragnarok::$instance->addPending($this->player_id,0, "DiscardAOW");   
+            }
         }
         else{
             mythicbattlesragnarok::$instance->addPending($action->player_id, $action->unit_id,$action->function, $action->parg1,$action->parg2,$action->parg3,$action->parg4);
@@ -457,35 +533,38 @@ class MBRplayer extends APP_GameClass
         $ret['title'] = clienttranslate('Maneuver : ${actplayer} must discard 1 AOW card, 1 divine stone or 2 activation cards from destroyed unit to draw 2 cards');
         $ret['titleyou'] = clienttranslate('Maneuver : ${you} must discard 1 AOW card, 1 divine stone or 2 activation cards from destroyed unit to draw 2 cards'); 
         
-        $sql = "SELECT * from deck".$this->player_no." where card_location = 'hand'";
-        $hand = self::getCollectionFromDb( $sql );
-        foreach($hand as $card)
-        {
-            $unit_id = $card['card_type_arg'];
-            if($unit_id <= 0)
+        if(!in_array("nomandraw", $this->status))
+    {
+            $sql = "SELECT * from deck".$this->player_no." where card_location = 'hand'";
+            $hand = self::getCollectionFromDb( $sql );
+            foreach($hand as $card)
             {
-                $ret['selectable']["card".$card['card_id']] = array();
-            }
-            else {
-                $unit = mythicbattlesragnarok::$instance->units[$unit_id];
-                if($unit->isDead() && $unit->category != TROOP)
+                $unit_id = $card['card_type_arg'];
+                if($unit_id <= 0)
                 {
-                    $ret['selectable']["card".$card['card_id']] = array('title' => clienttranslate('${you} must select a second activation card'), 'target'=> array());
-
-                    foreach($hand as $card2)
+                    $ret['selectable']["card".$card['card_id']] = array();
+                }
+                else {
+                    $unit = mythicbattlesragnarok::$instance->units[$unit_id];
+                    if($unit->isDead() && $unit->category != TROOP)
                     {
-                        if($card2['card_type_arg']>0 && $card['card_id'] != $card2['card_id'])
+                        $ret['selectable']["card".$card['card_id']] = array('title' => clienttranslate('${you} must select a second activation card'), 'target'=> array());
+
+                        foreach($hand as $card2)
                         {
-                            $unit2 = mythicbattlesragnarok::$instance->units[$card2['card_type_arg']];
-                            if($unit2->isDead() && $unit2->category != TROOP)
+                            if($card2['card_type_arg']>0 && $card['card_id'] != $card2['card_id'])
                             {
-                                $ret['selectable']["card".$card['card_id']]['target'][] = "card".$card2['card_id'];
+                                $unit2 = mythicbattlesragnarok::$instance->units[$card2['card_type_arg']];
+                                if($unit2->isDead() && $unit2->category != TROOP)
+                                {
+                                    $ret['selectable']["card".$card['card_id']]['target'][] = "card".$card2['card_id'];
+                                }
                             }
                         }
-                    }
-                    if(count($ret['selectable']["card".$card['card_id']]['target']) == 0)
-                    {
-                        unset( $ret['selectable']["card".$card['card_id']]);
+                        if(count($ret['selectable']["card".$card['card_id']]['target']) == 0)
+                        {
+                            unset( $ret['selectable']["card".$card['card_id']]);
+                        }
                     }
                 }
             }
@@ -495,43 +574,88 @@ class MBRplayer extends APP_GameClass
 
     function AnyDrawCards($parg1 = NULL, $parg2 = NULL, $varg1 = NULL, $varg2 = NULL)
     {
-        $card_id = str_replace("card","",$varg1);
-        $this->discard($card_id);
-        if($varg2 != null)
+        if($varg1 != null)
         {
-            $card_id2 = str_replace("card","",$varg2);
-            $this->discard($card_id2);
+            $card_id = str_replace("card","",$varg1);
+            $this->discard($card_id);
+            if($varg2 != null)
+            {
+                $card_id2 = str_replace("card","",$varg2);
+                $this->discard($card_id2);
+            }
+            mythicbattlesragnarok::$instance->notifyAllPlayers( "simpleText", clienttranslate('${player_name} draws 2 cards'), array(
+                'player_name' => $this->player_name,
+                'player_id' => $this->player_id
+            ) );
+            mythicbattlesragnarok::$instance->addPending($this->player_id,0, "draw", "mandatory");
+            mythicbattlesragnarok::$instance->addPending($this->player_id,0, "draw", "mandatory");
+            $this->status[] = 'nomandraw';
+            mythicbattlesragnarok::DbQuery("update player set endofturnstatus = concat(endofturnstatus, ' nomandraw' ) where player_id = ".$this->player_id);
         }
-        mythicbattlesragnarok::$instance->notifyAllPlayers( "simpleText", clienttranslate('${player_name} draws 2 cards'), array(
-            'player_name' => $this->player_name,
-            'player_id' => $this->player_id
-        ) );
-        mythicbattlesragnarok::$instance->addPending($this->player_id,0, "draw", "mandatory");
-        mythicbattlesragnarok::$instance->addPending($this->player_id,0, "draw", "mandatory");
-        $this->status[] = 'nomandraw';
-        mythicbattlesragnarok::DbQuery("update player set endofturnstatus = concat(endofturnstatus, ' nomandraw' ) where player_id = ".$this->player_id);
     }
 
     function argAnySearch($parg1 = NULL, $parg2 = NULL)
     {
-        $ret = $this->argAnyDrawCards($parg1, $parg2);
-        $ret['title'] = clienttranslate('Maneuver : ${actplayer} must discard 1 AOW card, 1 divine stone or 2 activation cards from destroyed unit to search for one card');
-        $ret['titleyou'] = clienttranslate('Maneuver : ${you} must discard 1 AOW card, 1 divine stone or 2 activation cards from destroyed unit to search for one card'); 
+        $ret = array();
+        $ret['selectable'] = array();
+        $ret['buttons'] = array();
+        $ret['title'] = clienttranslate('Maneuver : ${actplayer} must discard 1 AOW card, 1 divine stone or 2 activation cards from destroyed unit to draw 2 cards');
+        $ret['titleyou'] = clienttranslate('Maneuver : ${you} must discard 1 AOW card, 1 divine stone or 2 activation cards from destroyed unit to draw 2 cards'); 
+        
+        if(!in_array("nomansearch", $this->status))
+    {
+            $sql = "SELECT * from deck".$this->player_no." where card_location = 'hand'";
+            $hand = self::getCollectionFromDb( $sql );
+            foreach($hand as $card)
+            {
+                $unit_id = $card['card_type_arg'];
+                if($unit_id <= 0)
+                {
+                    $ret['selectable']["card".$card['card_id']] = array();
+                }
+                else {
+                    $unit = mythicbattlesragnarok::$instance->units[$unit_id];
+                    if($unit->isDead() && $unit->category != TROOP)
+                    {
+                        $ret['selectable']["card".$card['card_id']] = array('title' => clienttranslate('${you} must select a second activation card'), 'target'=> array());
+
+                        foreach($hand as $card2)
+                        {
+                            if($card2['card_type_arg']>0 && $card['card_id'] != $card2['card_id'])
+                            {
+                                $unit2 = mythicbattlesragnarok::$instance->units[$card2['card_type_arg']];
+                                if($unit2->isDead() && $unit2->category != TROOP)
+                                {
+                                    $ret['selectable']["card".$card['card_id']]['target'][] = "card".$card2['card_id'];
+                                }
+                            }
+                        }
+                        if(count($ret['selectable']["card".$card['card_id']]['target']) == 0)
+                        {
+                            unset( $ret['selectable']["card".$card['card_id']]);
+                        }
+                    }
+                }
+            }
+        }
         return $ret;
     }
     
     function AnySearch($parg1 = NULL, $parg2 = NULL, $varg1 = NULL, $varg2 = NULL)
     {
-        $card_id = str_replace("card","",$varg1);
-        $this->discard($card_id);
-        if($varg2 != null)
+        if($varg1 != null)
         {
-            $card_id2 = str_replace("card","",$varg2);
-            $this->discard($card_id2);
+            $card_id = str_replace("card","",$varg1);
+            $this->discard($card_id);
+            if($varg2 != null)
+            {
+                $card_id2 = str_replace("card","",$varg2);
+                $this->discard($card_id2);
+            }
+            mythicbattlesragnarok::$instance->addPending($this->player_id,0, "AnySearch2");
+            $this->status[] = 'nomansearch';
+            mythicbattlesragnarok::DbQuery("update player set endofturnstatus = concat(endofturnstatus, ' nomansearch' ) where player_id = ".$this->player_id);
         }
-        mythicbattlesragnarok::$instance->addPending($this->player_id,0, "AnySearch2");
-        $this->status[] = 'nomansearch';
-        mythicbattlesragnarok::DbQuery("update player set endofturnstatus = concat(endofturnstatus, ' nomansearch' ) where player_id = ".$this->player_id);
     }
 
     

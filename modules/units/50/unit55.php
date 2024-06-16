@@ -67,8 +67,8 @@ class unit55 extends unit
     function Master($parg1, $parg2, $varg1, $varg2) { 
         if($varg1 != "butskip")
         {
-            $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-            $this->player->discard($card_id);  
+            
+            mythicbattlesragnarok::$instance->addPending($this->player_id,0, "DiscardAOW");     
 
             $other = mythicbattlesragnarok::$instance->units[$parg1];
             $offense = $other->stats[0][OFFENSE];      

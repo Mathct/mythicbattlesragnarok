@@ -54,18 +54,21 @@ class unit24 extends unit
         $attack->type = ATNORMAL;
 
         foreach(mythicbattlesragnarok::$instance->units as $unit)
-        {            
-            $range = $this->zone->getDistanceWith($unit->zone);               
-            $attack->range = $range;
-            $attack->offense = 5;
-            $attack->to = $unit;
-            if($attack->to->canBeTargeted($attack))
-            {
-                $ret['selectable']['unit'.$unit->id] = array(
-                    "confirm" => 'Do you want to attack ${unitid_display} ( ${offense} vs ${defense} ) ?',
-                    "offense" => 5,
-                    "defense" => $unit->getEffectiveStat(DEFENSE, $attack),
-                ); 
+        {           
+            if($unit->zone_id > 0 )
+            {              
+                $range = $this->zone->getDistanceWith($unit->zone);               
+                $attack->range = $range;
+                $attack->offense = 5;
+                $attack->to = $unit;
+                if($attack->to->canBeTargeted($attack))
+                {
+                    $ret['selectable']['unit'.$unit->id] = array(
+                        "confirm" => 'Do you want to attack ${unitid_display} ( ${offense} vs ${defense} ) ?',
+                        "offense" => 5,
+                        "defense" => $unit->getEffectiveStat(DEFENSE, $attack),
+                    ); 
+                }   
             }                  
         } 
         return $ret;

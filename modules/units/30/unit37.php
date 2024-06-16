@@ -32,11 +32,11 @@ class unit37 extends unit
         {
             mythicbattlesragnarok::$instance->addPending($this->player_id,$this->id, "Dragon");
         }
-        if($time == AFTER1STROLL && $this->canUse($this->powers[1]) && $attack->from == $this)
+        if($time == AFTER1STROLL && $this->canUse($this->powers[1]) && $attack->from->player_id == $this->player_id)
         {
             mythicbattlesragnarok::$instance->addPending($this->player_id,$this->id, "Ring", $attack->toJSON());            
         }
-        if($time == AFTER2DROLL && $this->canUse($this->powers[1]) && $attack->from == $this)
+        if($time == AFTER2DROLL && $this->canUse($this->powers[1]) && $attack->from->player_id == $this->player_id)
         {
             mythicbattlesragnarok::$instance->addPending($this->player_id,$this->id, "Ring", $attack->toJSON());            
         }
@@ -61,10 +61,9 @@ class unit37 extends unit
     function Dragon($parg1, $parg2, $varg1, $varg2) { 
         if($varg1 != "butskip")
         {
-            $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-            $this->player->discard($card_id); 
-            $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-            $this->player->discard($card_id); 
+            
+            mythicbattlesragnarok::$instance->addPending($this->player_id,0, "DiscardAOW");     
+            mythicbattlesragnarok::$instance->addPending($this->player_id,0, "DiscardAOW");     
             $this->hp = 3;
             mythicbattlesragnarok::DbQuery("update unit set hp = 3 where id = ".$this->id);
             mythicbattlesragnarok::$instance->notifyAllPlayers( "wounds", clienttranslate('${unitid_display} uses ${talent}'), array(

@@ -28,16 +28,17 @@ class unit4 extends unit
          $this->powers[2] = new power(2,PERMANENT, WHITE, clienttranslate("Freyja's cats"), clienttranslate('When recruited, you can immediately recruit the Freyja’s Cats Monster for 2 RP.'));
     }
 
-    public function getStatBonus($stat, $to, $attack)
+    public function getEffectiveStat($stat, $attack = NULL)
     {
-        $ret = parent::getStatBonus($stat, $to, $attack);
-        
-        if($this->canUse($this->powers[0]) && $stat == DAMAGEBONUS && $to == $attack->to  && $attack->to->zone == $this->zone && $attack->to->player_id == $this->player_id && $attack->range == 0)
+        $ret = parent::getEffectiveStat($stat, $attack);
+        if($this->canUse($this->powers[0]) && $stat == DAMAGEBONUS && $attack->to->zone == $this->zone && $attack->to->player_id == $this->player_id && $attack->range == 0)
         {
-            $ret--;
+            $ret["Necklace of Brísingar"] = -1;
+            $ret['total']--;
         }
         return $ret;
     }
+
     
     public function activatePower($index)
     {

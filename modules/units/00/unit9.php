@@ -22,7 +22,7 @@ class unit9 extends unit
     public function onTiming($time, $attack)
     {
         parent::onTiming($time, $attack);
-        if($time == BEFOREDIE &&  $attack->to == $this && $attack->from != null && $attack->from->player_id != $attack->to->player_id)
+        if($time == BEFOREDIE &&  $attack->to == $this && $attack->from != null && $attack->from->player_id != $attack->to->player_id && $attack->from->zone->getDistanceWith($this->zone) == 0)
         {
             $nattack = new attack();
             $nattack->from = $this;

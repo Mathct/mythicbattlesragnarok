@@ -103,7 +103,7 @@ class unit extends APP_GameClass
         $unit->attachment->id = $unitdb['attachment'];
         $unit->attachment->unit = $unit;
         
-        $tokens = self::getCollectionFromDb( "SELECT * FROM token where location = 'unit".$unit->id."' or location = 'dashboard".$unit->id."'");
+        $tokens = mythicbattlesragnarok::$instance->getCollectionFromDb( "SELECT * FROM token where location = 'unit".$unit->id."' or location = 'dashboard".$unit->id."'");
         foreach($tokens as $token)
         {
             $unit->status[] = "token".$token["type"];
@@ -296,11 +296,7 @@ class unit extends APP_GameClass
         {
             $index = str_replace("butpow","", $varg1);
             $power = $this->powers[$index];
-            for($i = 0;$i<$power->aow;$i++)
-            {
-                $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-                $this->player->discard($card_id);
-            }
+            
             
             $this->status[] = "power".$power->index;
             $addedstatus = "power".$power->index;
@@ -322,6 +318,11 @@ class unit extends APP_GameClass
                 'unitid_display' => $this->id,
                 'talent' => $this->powers[$index]->title
                 ) );
+
+            for($i = 0;$i<$power->aow;$i++)
+            {                
+                mythicbattlesragnarok::$instance->addPending($this->player_id,0, "DiscardAOW");     
+            }
             
         }
         else if (str_starts_with($varg1, "buttalent")) //talent action
@@ -357,7 +358,7 @@ class unit extends APP_GameClass
 
         foreach(mythicbattlesragnarok::$instance->units as $tested)
         {
-            if($tested->player_id != $this->player_id)
+            if($tested->player_id != $this->player_id && $tested->zone->id > 0)
             {
                $attack->to = $tested;
                $range = $this->getEffectiveStat(RANGE, $attack)['total'];
@@ -496,14 +497,15 @@ class unit extends APP_GameClass
             $attack->offense = $parg2;
         }
 
-        mythicbattlesragnarok::$instance->notifyAllPlayers( "simpletext", clienttranslate('${unitid_display} attacks ${unitid_display2} ( ${offense} vs ${defense} )'), array(
+        mythicbattlesragnarok::$instance->notifyAllPlayers( "simpletext", clienttranslate('${unitid_display} attacks ${unitid_display2} ( ${offense} vs ${defense}. ${range} )'), array(
             'unitid_display' => $this->id,
             'unitid_display2' => $unit->id,
             "offense" => $offense,
             "defense" => $defense,
+            'range' => $attack->range
         ) );  
 
-        if($nodistance != "nodistance" && $attack->range == 0 && $this->zone != $unit->zone && !($this->zone->getDistanceWith($unit->zone) == 1 && $unit->zone->isFull()))
+        if($nodistance != "nodistance" && $attack->range == 0 && $attack->type != RETALIATE  && $this->zone != $unit->zone && !($this->zone->getDistanceWith($unit->zone) == 1 && $unit->zone->isFull()))
         {
             mythicbattlesragnarok::$instance->notifyAllPlayers( "simpletext", clienttranslate('${unitid_display} is too far from ${unitid_display2}'), array(
                 'unitid_display' => $this->id,
@@ -547,11 +549,12 @@ class unit extends APP_GameClass
             $this->player->discard($card_id);
             $attack->offense++;
 
-            mythicbattlesragnarok::$instance->notifyAllPlayers( "simpletext", clienttranslate('${unitid_display} attacks ${unitid_display2} ( ${offense} vs ${defense} )'), array(
+            mythicbattlesragnarok::$instance->notifyAllPlayers( "simpletext", clienttranslate('${unitid_display} attacks ${unitid_display2} ( ${offense} vs ${defense}. ${range} )'), array(
                 'unitid_display' => $this->id,
                 'unitid_display2' => $attack->to->id,
                 "offense" => $attack->offense,
                 "defense" => $attack->defense,
+                'range' => $attack->range
             ) );  
 
             mythicbattlesragnarok::$instance->addPending(mythicbattlesragnarok::$instance->getActivePlayerId(),$this->id, "A2A_RuneCard", $attack->toJSON());
@@ -1336,6 +1339,10 @@ class unit extends APP_GameClass
     
     public function canSeeZone($zone)
     {
+        if($zone->id <= 0 || $this->zone->id <= 0)
+        {
+            return false;
+        }
         if($zone != $this->zone)
         {
             if(!($this->zone->ignoreObstacle($this->zone, $zone) || $zone->ignoreObstacle($this->zone, $zone)))
@@ -1379,6 +1386,10 @@ class unit extends APP_GameClass
 
     public function canSee($otherUnit)
     {
+        if($otherUnit->id <= 0 || $this->zone->id <= 0)
+        {
+            return false;
+        }
         if($otherUnit->zone->id != $this->zone->id)
         {
             if(!($this->ignoreObstacle($otherUnit) || $this->zone->ignoreObstacle($this->zone, $otherUnit->zone) || $otherUnit->zone->ignoreObstacle($this->zone, $otherUnit->zone)))
@@ -1842,7 +1853,7 @@ class unit extends APP_GameClass
     function getAnyTimeActions($player_id)
     {
         $ret = array();
-        if(in_array("currentactivation", $this->status) && mythicbattlesragnarok::getUniqueValueFromDB( "SELECT count(*) from token where type='rune' and location = 'unit".$this->id."'")>0)
+        if(in_array("currentactivation", $this->status) && mythicbattlesragnarok::getUniqueValueFromDB( "SELECT count(*) from token where type='rune' and location = 'unit".$this->id."'")>0 && $this->player_id == $player_id)
         {
             $ret['butAny'.$this->id."dropAll"] = array("title" => clienttranslate("Drop divine stone"));
         }

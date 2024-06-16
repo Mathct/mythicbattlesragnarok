@@ -52,6 +52,7 @@ class mythicbattlesragnarok extends Table
             //    "my_second_global_variable" => 11,
             //      ...
                 "board" => 100,
+                "draft" => 101,
             //    "my_second_game_variant" => 101,
             //      ...
         ) ); 
@@ -83,10 +84,14 @@ class mythicbattlesragnarok extends Table
         // Set the colors of the players with HTML color code
         // The default below is red/green/blue/orange/brown
         // The number of colors defined here must correspond to the maximum number of players allowed for the gams
-        $gameinfos = self::getGameinfos();
+        $gameinfos = self::getGameinfos(); 
         $default_colors = $gameinfos['player_colors'];
+        self::setGameStateInitialValue( 'debug', 0 );
 
-        ksort($players); //force le 1er jouer DEBUG
+        if(self::getGameStateValue( 'debug') == 1)
+        {
+            ksort($players); //force le 1er jouer DEBUG
+        }
  
         // Create players
         // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
@@ -156,20 +161,17 @@ class mythicbattlesragnarok extends Table
         $sql .= implode( ',', $values );
         self::DbQuery( $sql );
 
-        self::setGameStateInitialValue( 'debug', 0 );
-
         if(self::getGameStateValue( 'debug') == 1)
         {
-            $unittested = 24;
-            $ennemyUnit = 50;
-            self::DbQuery("INSERT INTO unit (player_id, type, zone_id, hp) VALUES ($player_id_first,50,9,4)");
-            self::DbQuery("INSERT INTO unit (player_id, type, zone_id, hp) VALUES ($player_id_first,11,15,2)");
-            self::DbQuery("INSERT INTO unit (player_id, type, zone_id, hp) VALUES ($player_id_first,$unittested,4,4)");
+            $unittested = 12;
+            $ennemyUnit = 34;
+            self::DbQuery("INSERT INTO unit (player_id, type, zone_id, hp) VALUES ($player_id_first,47,8,-1)");
+            self::DbQuery("INSERT INTO unit (player_id, type, zone_id, hp) VALUES ($player_id_first,49,25,3)");
+            self::DbQuery("INSERT INTO unit (player_id, type, zone_id, hp) VALUES ($player_id_first,$unittested,25,3)");
 
-            self::DbQuery("INSERT INTO unit (player_id, type, zone_id, hp) VALUES ($player_id_second,$ennemyUnit,4,1)");
-            self::DbQuery("INSERT INTO unit (player_id, type, zone_id, hp) VALUES ($player_id_second,47,16,4)");
-            
-            self::DbQuery("INSERT INTO unit (player_id, type, zone_id, hp) VALUES ($player_id_second,13,16,4)");
+            self::DbQuery("INSERT INTO unit (player_id, type, zone_id, hp) VALUES ($player_id_second,$ennemyUnit,26,3)");
+            self::DbQuery("INSERT INTO unit (player_id, type, zone_id, hp) VALUES ($player_id_second,7,25,5)");
+            self::DbQuery("INSERT INTO unit (player_id, type, zone_id, hp) VALUES ($player_id_second,9,26,1)");
 
             $this->loadAll();
 
@@ -183,25 +185,64 @@ class mythicbattlesragnarok extends Table
         { 
             $sql = "INSERT INTO unit (type, hp, zone_id, player_id) VALUES ";
             $values = array();
-            for ($i=1; $i<=57; $i++)
+            $limit = 8;
+
+            if(self::getGameStateValue( 'draft') == 1)
+            {
+                $limit = 8;
+                for ($i=1; $i<=57; $i++)
+                    {
+                        $unitClassName = "unit" . $i;
+                        $unitinstance=new $unitClassName();
+                        $hp=count($unitinstance->stats);
+                        $hpunit[$i][]=$hp;
+                        $values[] = "($i, $hp, -3, 0)";
+                    }
+
+            }
+            else{                
+                $limit = 6;
+                $units = array();
+                foreach( array(TROOP, HERO, MONSTER, GOD) as $categ)
                 {
-                    $unitClassName = "unit" . $i;
-                    $unitinstance=new $unitClassName();
-                    $hp=count($unitinstance->stats);
-                    $hpunit[$i][]=$hp;
-                    $values[] = "($i, $hp, -3, 0)";
+                    for ($j=1; $j<=6; $j++)
+                    {
+                        $i = -1;
+                        while($i == -1)
+                        {
+                            $i = bga_rand(1,57);
+                            $unitClassName = "unit" . $i;
+                            $unitinstance=new $unitClassName();
+                            if($unitinstance->category != $categ || in_array($i, $units))
+                            {
+                                $i = -1;
+                            }
+                        }
+                        $unitClassName = "unit" . $i;
+                        $unitinstance=new $unitClassName();
+                        $hp=count($unitinstance->stats);
+                        $hpunit[$i][]=$hp;
+                        $values[] = "($i, $hp, -3, 0)";
+                        $units[] = $i;
+                    }
                 }
+            }
+
             $sql .= implode( ',', $values );
             self::DbQuery( $sql );
 
             $sql = "INSERT INTO attachmentdraft (id) VALUES ";
             $values = array();
-            for ($i=1; $i<=8; $i++)
+
+            for ($i=1; $i<=$limit; $i++)
                 {
                     $values[] = "($i)";
                 }
             $sql .= implode( ',', $values );
             self::DbQuery( $sql );
+
+            $player_id_first = self::getUniqueValueFromDB( "select player_id from player where player_no = 1");
+            $player_id_second = self::getUniqueValueFromDB( "select player_id from player where player_no = 2");
 
             mythicbattlesragnarok::$instance->addPendingFirst($player_id_first,0, "Draft", "divinity");
             mythicbattlesragnarok::$instance->addPendingFirst($player_id_second,0, "Draft", "divinity"); 
@@ -375,6 +416,9 @@ class mythicbattlesragnarok extends Table
         $nbrune = self::getUniqueValueFromDB( "select max(player_score) from player");
         $ret = 0;
 
+        $nbkill = self::getUniqueValueFromDB( "select count(*) from unit where zone_id = 0");
+        
+
         if($nbrune>=4)
         {
             $ret = 100;
@@ -383,7 +427,7 @@ class mythicbattlesragnarok extends Table
         {
             $ret = 75;
         }
-        else  if($nbrune>=2)
+        else  if($nbrune>=2 || $nbkill>0)
         {
             $ret = 51;
         }

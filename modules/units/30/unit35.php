@@ -56,7 +56,7 @@ class unit35 extends unit
         $ret['selectable']['butskip'] = array("title" => clienttranslate("Skip"), "color"=>"gray");       
         foreach(mythicbattlesragnarok::$instance->units as $unit)
         {       
-            if($unit->player_id != $this->player_id)
+            if($unit->player_id != $this->player_id && $unit->category != GOD && $unit->category != TITAN)
             {
                 $ret['selectable']['unit'.$unit->id] = array(
                     "confirm" => 'Skuld : Do you want to curse ${unitid_display}?'
@@ -90,6 +90,11 @@ class unit35 extends unit
             else {            
                 $card_id = str_replace("card","", $action->varg1);
                 $card = self::getObjectFromDB( "SELECT * FROM deck".$this->player->player_no." where card_id = ".$card_id);
+
+                if($card == null)
+                {
+                    $card = self::getObjectFromDB( "SELECT * FROM deck".$this->player->getOtherPlayer()->player_no." where card_id = ".$card_id);
+                }
                 $unit_id = $card['card_type_arg'];
             }
             if($unit_id != 0)

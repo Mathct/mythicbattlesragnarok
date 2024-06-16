@@ -84,8 +84,7 @@ class unit25 extends unit
         if($varg1 != "butskip")
         {
             $unit = mythicbattlesragnarok::$instance->units[$parg1];
-            $card_id = mythicbattlesragnarok::getUniqueValueFromDB( "SELECT card_id from deck".$this->player->player_no." where card_location = 'hand' and card_type <= 0 limit 1");
-            $this->player->discard($card_id);
+            mythicbattlesragnarok::$instance->addPending($this->player_id,0, "DiscardAOW");     
             $unit->wound(1,$this);
         }
     }

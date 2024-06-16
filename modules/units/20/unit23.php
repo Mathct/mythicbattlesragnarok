@@ -101,19 +101,24 @@ class unit23 extends unit
     function MistressTrigger($parg1, $parg2, $varg1, $varg2) { 
         $unitid = $parg1;
         $unit =  mythicbattlesragnarok::$instance->units[$unitid];
-        $token_id = self::getUniqueValueFromDB( "SELECT id from token where type='Skadi' and location = 'zone".$unit->zone->id."'");
-        
-        mythicbattlesragnarok::$instance->notifyAllPlayers( "fadeOutAndDestroy", '', array(
-            'id' => 'token'.$token_id
-        ) );
-        mythicbattlesragnarok::DbQuery( "delete from token where id = ".$token_id);
+        $wounds = 0;
+        $token_id = self::getUniqueValueFromDB( "SELECT id from token where type='Skadi' and location = 'zone".$unit->zone->id."' limit 1");
+        while($token_id != null)
+        {            
+            mythicbattlesragnarok::$instance->notifyAllPlayers( "fadeOutAndDestroy", '', array(
+                'id' => 'token'.$token_id
+            ) );
+            mythicbattlesragnarok::DbQuery( "delete from token where id = ".$token_id);
+            $token_id = self::getUniqueValueFromDB( "SELECT id from token where type='Skadi' and location = 'zone".$unit->zone->id."'");
+            $wounds++;
+        }
         
         $unit->status[] = "norun";
         $unit->status[] = "nowalk";
         mythicbattlesragnarok::DbQuery("update unit set statusTurn = concat(statusTurn, ' norun nowalk' ) where id = ".$unit->id);
         mythicbattlesragnarok::DbQuery( "delete from pending where function = 'move' and unit_id=".$unit->id." and player_id=".$unit->player_id);
 
-        $unit->wound(1, $this); 
+        $unit->wound($wounds, $this); 
 
     }
 

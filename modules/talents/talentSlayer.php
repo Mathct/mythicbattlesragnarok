@@ -13,7 +13,7 @@ class talentSlayer extends talent
     {
         if($time == AFTER1STROLL && $this->unit->canUse($this) && $attack->from == $this->unit && $attack->to->category == $this->slayer)
         {
-            mythicbattlesragnarok::$instance->addPending($this->unit->player_id,$this->unit->id, "talentTroopSlayer.slayer", $attack->toJSON());
+            mythicbattlesragnarok::$instance->addPending($attack->to->player->getOtherPlayer()->id,$this->unit->id, "talentTroopSlayer.slayer", $attack->toJSON());
         }
     }
 
